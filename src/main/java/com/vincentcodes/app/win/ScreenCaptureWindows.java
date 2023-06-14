@@ -117,7 +117,7 @@ public class ScreenCaptureWindows implements Closeable {
     public void recordScreenWithAudio() {
         LOGGER.info("Record screen with desktop audio");
         runCommand(TemplateUtils.injectTemplate(
-                WindowsCommandConsts.CAP_SCREEN_WITH_AUDIO,
+                WindowsCommandConsts.CAP_SCREEN_WITH_AUDIO(),
                 Map.of("filename", getOutputFilename("mp4"),
                         "ffmpeg_bin", ffmpegExecutablePath)
         ));
@@ -125,7 +125,7 @@ public class ScreenCaptureWindows implements Closeable {
     public void recordScreenOnly() {
         LOGGER.info("Record screen only");
         runCommand(TemplateUtils.injectTemplate(
-                WindowsCommandConsts.CAP_SCREEN_WITHOUT_AUDIO,
+                WindowsCommandConsts.CAP_SCREEN_WITHOUT_AUDIO(),
                 Map.of("filename", getOutputFilename("mp4"),
                         "ffmpeg_bin", ffmpegExecutablePath)
         ));
@@ -133,7 +133,7 @@ public class ScreenCaptureWindows implements Closeable {
     public void recordScreenWithMic() {
         LOGGER.info("Record screen with microphone");
         runCommand(TemplateUtils.injectTemplate(
-                WindowsCommandConsts.CAP_SCREEN_WITH_MIC,
+                WindowsCommandConsts.CAP_SCREEN_WITH_MIC(),
                 Map.of("filename", getOutputFilename("mp4"),
                         "ffmpeg_bin", ffmpegExecutablePath)
         ));
@@ -141,7 +141,7 @@ public class ScreenCaptureWindows implements Closeable {
     public void recordAudioOnly() {
         LOGGER.info("Record desktop audio only");
         runCommand(TemplateUtils.injectTemplate(
-                WindowsCommandConsts.CAP_AUDIO_ONLY,
+                WindowsCommandConsts.CAP_AUDIO_ONLY(),
                 Map.of("filename", getOutputFilename("mp3"),
                         "ffmpeg_bin", ffmpegExecutablePath)
         ));
@@ -149,7 +149,7 @@ public class ScreenCaptureWindows implements Closeable {
     public void recordMicOnly() {
         LOGGER.info("Record microphone only");
         runCommand(TemplateUtils.injectTemplate(
-                WindowsCommandConsts.CAP_MIC_ONLY,
+                WindowsCommandConsts.CAP_MIC_ONLY(),
                 Map.of("filename", getOutputFilename("mp3"),
                         "ffmpeg_bin", ffmpegExecutablePath)
         ));
