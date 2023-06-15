@@ -34,4 +34,11 @@ CTRL + SHIFT + K -> Kill ffmpeg recorder
 ```
 
 ## Caution
+When you are on Windows and you face a UAC prompt for access (ie. ALLOW / DISALLOW the execution of an application),
+ffmpeg will stop recording because of some permission issues. Which means you need to record the screen again with 
+`CTRL + SHIFT + 1`.
+
+Hence, the flow is `CAP SCREEN -> UAC (click yes / no) -> CAP SCREEN again`
+
+### Last resort
 If you encounter any unstoppable errors, you can press CTRL + C to force the command line program to end.
