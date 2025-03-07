@@ -18,7 +18,7 @@ import java.util.function.BiConsumer;
  * not be sent to the command process.
  */
 public class CmdProcessRunner implements Closeable {
-    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(1);
+    private final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(1);
 
     private final ProcessBuilder builder = new ProcessBuilder();
     private final BiConsumer<InputStream, InputStream> handler;
@@ -33,14 +33,13 @@ public class CmdProcessRunner implements Closeable {
     }
 
     private Future<?> run(boolean doWait, boolean doInheritIO, String... args) throws IOException, IllegalStateException {
-        if(runningProc != null)
-            throw new IllegalStateException("You can only run one process.");
+        if(runningProc != null) throw new IllegalStateException("You can only run one process.");
 
-        if(doInheritIO)
-            builder.inheritIO();
+        if(doInheritIO) builder.inheritIO();
         builder.redirectInput(ProcessBuilder.Redirect.PIPE);
         runningProc = builder.command(args).start();
-        Future<?> result = EXECUTOR_SERVICE.submit(new ProcessOutputHandler(runningProc.getInputStream(), runningProc.getErrorStream(), handler));
+        Future<?> result = EXECUTOR_SERVICE.submit(new ProcessOutputHandler(
+                runningProc.getInputStream(), runningProc.getErrorStream(), handler));
         try {
             if(doWait)
                 runningProc.waitFor();
@@ -64,6 +63,8 @@ public class CmdProcessRunner implements Closeable {
 
     @Override
     public void close() throws IOException {
+        runningProc.destroyForcibly();
+
         EXECUTOR_SERVICE.shutdown();
         try{
             if(!EXECUTOR_SERVICE.awaitTermination(60, TimeUnit.SECONDS)){

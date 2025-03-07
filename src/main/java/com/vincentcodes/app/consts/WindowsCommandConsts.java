@@ -24,7 +24,6 @@ public class WindowsCommandConsts {
                 "-f", "dshow",
                 "-thread_queue_size", THREAD_QUEUE_SIZE + "",
                 "-i", "audio=Stereo Mix (Realtek High Definition Audio)",
-                "-itsoffset", "0.6",
                 "-f", "gdigrab",
                 "-thread_queue_size", THREAD_QUEUE_SIZE + "",
                 "-framerate", SCREEN_CAP_FPS + "",
@@ -60,7 +59,6 @@ public class WindowsCommandConsts {
                 "-f", "dshow",
                 "-thread_queue_size", THREAD_QUEUE_SIZE + "",
                 "-i", "audio=Microphone (Realtek High Definition Audio)",
-                "-itsoffset", "0.6",
                 "-filter:a", "volume=" + MIC_VOLUME_INCREASE,
                 "-f", "gdigrab",
                 "-thread_queue_size", THREAD_QUEUE_SIZE + "",
@@ -95,6 +93,20 @@ public class WindowsCommandConsts {
                 "-filter:a", "volume=" + MIC_VOLUME_INCREASE,
                 "-write_xing", "0",
                 "{{filename}}"
+        };
+    }
+
+    public static String[] DELAY_AUDIO_ONLY_IN_VIDEO(){
+        return new String[]{
+                "{{ffmpeg_bin}}",
+                "-i", "{{filename}}",
+                "-itsoffset", "0.6",
+                "-i", "{{filename}}",
+                "-acodec", "copy",
+                "-vcodec", "copy",
+                "-map", "0:a",
+                "-map", "1:v",
+                "{{outfilename}}"
         };
     }
 }

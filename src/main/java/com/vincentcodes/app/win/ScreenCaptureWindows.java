@@ -12,12 +12,14 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.time.Instant;
-import java.util.Date;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 public class ScreenCaptureWindows implements Closeable {
     private static final ExecutorService LISTENER_EXECUTOR = Executors.newFixedThreadPool(1);
@@ -80,8 +82,9 @@ public class ScreenCaptureWindows implements Closeable {
                 try {
                     if(KeyMap.IS_TERM_FFMPEG.test(key, ctrl, shift)) {
                         stopRunningFFmpeg();
-                    }else if(KeyMap.IS_KILL_FFMPEG.test(key, ctrl, shift))
+                    }else if(KeyMap.IS_KILL_FFMPEG.test(key, ctrl, shift)) {
                         killRunningFFmpeg();
+                    }
                 } catch (IOException | InterruptedException e) {
                     LOGGER.error("Cannot stop / kill ffmpeg: " + e.getMessage());
                     e.printStackTrace();
@@ -116,11 +119,22 @@ public class ScreenCaptureWindows implements Closeable {
 
     public void recordScreenWithAudio() {
         LOGGER.info("Record screen with desktop audio");
-        runCommand(TemplateUtils.injectTemplate(
-                WindowsCommandConsts.CAP_SCREEN_WITH_AUDIO(),
-                Map.of("filename", getOutputFilename("mp4"),
-                        "ffmpeg_bin", ffmpegExecutablePath)
-        ));
+        FFMPEG_EXECUTOR.submit(()-> {
+            String outputFilename = getOutputFilename("mp4");
+            String outputFilenameWithoutExt = outputFilename.substring(0, outputFilename.lastIndexOf('.'));
+            runCommandSync(TemplateUtils.injectTemplate(
+                    WindowsCommandConsts.CAP_SCREEN_WITH_AUDIO(),
+                    Map.of("filename", outputFilename,
+                            "ffmpeg_bin", ffmpegExecutablePath)
+            ));
+            waitUntilTrue((any)-> Files.isRegularFile(Path.of(outputFilename)));
+            runCommandSync(TemplateUtils.injectTemplate(
+                    WindowsCommandConsts.DELAY_AUDIO_ONLY_IN_VIDEO(),
+                    Map.of("filename", outputFilename,
+                            "outfilename", outputFilenameWithoutExt + "_timed.mp4",
+                            "ffmpeg_bin", ffmpegExecutablePath)
+            ));
+        });
     }
     public void recordScreenOnly() {
         LOGGER.info("Record screen only");
@@ -185,28 +199,27 @@ public class ScreenCaptureWindows implements Closeable {
         }else LOGGER.warn("ffmpeg is still running");
     }
 
-        /**
-         * [blocking] Runs a command with given program and
-         }args
-     */
     private void runCommand(String[] cmd){
         ensureSingleRunningFFmpeg();
 
-        LOGGER.info("Starting an ffmpeg program with: " + String.join(" ", cmd));
-        FFMPEG_EXECUTOR.submit(()->{
-            try(final CmdProcessRunner RUNNER = new CmdProcessRunner()){
-                ffmpegRunner = RUNNER;
-                ffmpegStarted = true;
-                LOGGER.debug("Task submitted. Running the command now");
-                ffmpegRunner.runSync(cmd);
-                ffmpegStarted = false;
-            } catch (IOException e) {
-                e.printStackTrace();
+        FFMPEG_EXECUTOR.submit(()-> runCommandSync(cmd));
+    }
+    private void runCommandSync(String[] cmd){
+        ensureSingleRunningFFmpeg();
 
-                LOGGER.error("Cannot start ffmpeg. Stopping it");
-                ffmpegRunner.getRunningProc().destroy();
-            }
-        });
+        LOGGER.info("Starting an ffmpeg program with: " + String.join(" ", cmd));
+        try(final CmdProcessRunner RUNNER = new CmdProcessRunner()){
+            ffmpegRunner = RUNNER;
+            ffmpegStarted = true;
+            LOGGER.debug("Task submitted. Running the command now");
+            ffmpegRunner.runSync(cmd);
+        } catch (IOException | UncheckedIOException e) {
+            e.printStackTrace();
+            LOGGER.error("Cannot start ffmpeg. Stopping it");
+        } finally {
+            LOGGER.info("ffmpeg finished");
+            ffmpegStarted = false;
+        }
     }
 
     private void ensureSingleRunningFFmpeg(){
@@ -222,6 +235,16 @@ public class ScreenCaptureWindows implements Closeable {
         } catch (IOException e) {
             LOGGER.error("Error trying to create a new file. Putting it here instead: ./" + filename);
             return filename;
+        }
+    }
+
+    private void waitUntilTrue(Predicate<Object> func){
+        while(!func.test(null)){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
